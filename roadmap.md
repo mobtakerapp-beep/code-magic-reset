@@ -17,3 +17,4 @@
 - resetPasswordWithCode accepts any active, non-expired code; auto-records code_redemptions
 - Error codes weak_password / invalid_input surfaced in auth.index.tsx
 - Verify with typecheck + build; do NOT publish
+- Run app locally (dev server) and verify it loads
