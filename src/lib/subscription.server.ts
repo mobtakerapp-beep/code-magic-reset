@@ -14,6 +14,8 @@ export type SubscriptionStatus = {
   school: string;
   email: string;
   remainingToday: number;
+  expiresAt: string | null;
+  daysRemaining: number | null;
 };
 
 const FREE_DAILY_LIMIT = 3;
@@ -103,6 +105,12 @@ export async function getSubscriptionStatus(
 
   const canGenerate = isVIP ? true : generationsUsed < generationsLimit;
 
+  // Days left on the paid subscription (rounded up, never negative).
+  const expiresAt = plan === "free" ? null : (sub?.expires_at ?? null);
+  const daysRemaining = expiresAt
+    ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now.getTime()) / 86400000))
+    : null;
+
   return {
     plan,
     status,
@@ -113,6 +121,8 @@ export async function getSubscriptionStatus(
     school: profile?.school ?? "",
     email,
     remainingToday: isVIP ? PAID_LIMIT : Math.max(0, generationsLimit - generationsUsed),
+    expiresAt,
+    daysRemaining,
   };
 }
 
