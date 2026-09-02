@@ -18,13 +18,13 @@ export type SubscriptionStatus = {
   daysRemaining: number | null;
 };
 
-const FREE_DAILY_LIMIT = 3;
-const PAID_DAILY_LIMIT = 3; // تم تغييره من 999999 إلى 3 دروس يوميًا
+const FREE_TOTAL_LIMIT = 1; // المجاني: محاولة واحدة فقط مدى الحياة
+const PAID_DAILY_LIMIT = 3; // المشترك: 3 دروس يوميًا
 const UNLIMITED_LIMIT = 999999; // بلا حدود للأدمن
 
-/** Hard daily cap backed by ai_generation_log (abuse protection). */
-const FREE_GENERATION_LOG_CAP = 10;
-const PAID_GENERATION_LOG_CAP = 10; // تم تغييره من 300 إلى 10 لمطابقة الحد الأقصى 3 دروس
+/** Hard cap backed by ai_generation_log (abuse protection). */
+const FREE_GENERATION_LOG_CAP = 1;
+const PAID_GENERATION_LOG_CAP = 3;
 
 function isSameDay(a: Date, b: Date) {
   return (
