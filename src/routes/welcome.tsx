@@ -25,7 +25,7 @@ export const Route = createFileRoute("/welcome")({
       {
         name: "description",
         content:
-          "منصة للمعلمين تحوّل أي درس PDF أو صورة أو نص إلى أسئلة تفاعلية وبطاقات وخريطة ذهنية وورقة عمل جاهزة للطباعة، بالعربية والإنجليزية.",
+          "منصة للمعلمين تحوّل أي درس PDF أو صورة أو نص إلى أسئلة تفاعلية وبطاقات وخريطة ذهنية وورقة عمل جاهزة للط[...]",
       },
       { property: "og:title", content: "مولّد الدروس الذكي للمعلمين" },
       {
@@ -109,8 +109,8 @@ function WelcomePage() {
       perAr: "٣٠ يومًا",
       perEn: "30 days",
       items: ar
-        ? ["توليد غير محدود", "حفظ الدروس ومشاركتها", "دعم مباشر على واتساب"]
-        : ["Unlimited generations", "Save & share lessons", "Direct WhatsApp support"],
+        ? ["3 دروس يوميًا", "حفظ الدروس ومشاركتها", "دعم مباشر على واتساب"]
+        : ["3 lessons per day", "Save & share lessons", "Direct WhatsApp support"],
       highlight: true,
     },
     {
@@ -163,7 +163,7 @@ function WelcomePage() {
           </h1>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
             {ar
-              ? "ارفع درسك أو اختر قالب مادتك، وسنجهّز لك أسئلة تفاعلية وبطاقات وخريطة ذهنية وورقة عمل جاهزة للطباعة — بالعربية أو الإنجليزية."
+              ? "ارفع درسك أو اختر قالب مادتك، وسنجهّز لك أسئلة تفاعلية وبطاقات وخريطة ذهنية وورقة عمل جاهزة للطبا[...]"
               : "Upload your lesson or pick a subject template and get interactive questions, flashcards, a mind map and a printable worksheet — in Arabic or English."}
           </p>
           <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row md:justify-start">
