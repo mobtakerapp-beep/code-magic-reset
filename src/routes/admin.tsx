@@ -58,6 +58,14 @@ function isActive(r: RedemptionRow) {
   return Boolean(r.subscriptionExpiresAt && new Date(r.subscriptionExpiresAt) > new Date());
 }
 
+/** Whole days left on the subscriber's subscription (0 when expired). */
+function daysLeft(r: RedemptionRow) {
+  if (!r.subscriptionExpiresAt) return null;
+  const ms = new Date(r.subscriptionExpiresAt).getTime() - Date.now();
+  if (Number.isNaN(ms)) return null;
+  return Math.max(0, Math.ceil(ms / 86400000));
+}
+
 function fmtDate(value: string | null, ar: boolean) {
   if (!value) return "—";
   const d = new Date(value);
@@ -206,8 +214,8 @@ function AdminPage() {
 
   const exportRedemptionsCsv = () => {
     const headers = ar
-      ? ["الكود", "الخطة", "بريد العميل", "تاريخ الاستخدام", "تاريخ الانتهاء", "الحالة"]
-      : ["Code", "Plan", "Customer email", "Redeemed on", "Expires on", "Status"];
+      ? ["الكود", "الخطة", "بريد العميل", "تاريخ الاستخدام", "تاريخ الانتهاء", "الأيام المتبقية", "الحالة"]
+      : ["Code", "Plan", "Customer email", "Redeemed on", "Expires on", "Days left", "Status"];
     const lines = filteredRedemptions.map((r) =>
       [
         r.code,
@@ -215,6 +223,7 @@ function AdminPage() {
         r.userEmail ?? "",
         fmtDate(r.redeemedAt, ar),
         fmtDate(r.subscriptionExpiresAt, ar),
+        String(daysLeft(r) ?? ""),
         isActive(r) ? (ar ? "نشط" : "Active") : (ar ? "منتهي" : "Expired"),
       ].join(","),
     );
@@ -727,6 +736,7 @@ function AdminPage() {
                 <th className="p-2 text-start">{ar ? "بريد العميل" : "Customer email"}</th>
                 <th className="p-2 text-start">{ar ? "تاريخ الاستخدام" : "Redeemed on"}</th>
                 <th className="p-2 text-start">{ar ? "ينتهي في" : "Expires on"}</th>
+                <th className="p-2 text-start">{ar ? "الأيام المتبقية" : "Days left"}</th>
                 <th className="p-2 text-start">{ar ? "الحالة" : "Status"}</th>
                 <th className="p-2" />
               </tr>
@@ -754,6 +764,13 @@ function AdminPage() {
                     </td>
                     <td className="p-2">{fmtDate(r.redeemedAt, ar)}</td>
                     <td className="p-2">{fmtDate(r.subscriptionExpiresAt, ar)}</td>
+                    <td className="p-2 font-bold">
+                      {daysLeft(r) === null
+                        ? "—"
+                        : ar
+                          ? `${daysLeft(r)} يوم`
+                          : `${daysLeft(r)} days`}
+                    </td>
                     <td className="p-2">
                       <span
                         className={
