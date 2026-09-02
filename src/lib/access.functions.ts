@@ -122,10 +122,11 @@ export const redeemCode = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("activation_codes")
         .update(
-          neverUsed
+          neverUsed && row.max_uses <= 1
             ? { used_count: (row.used_count ?? 0) + 1, expires_at: codeExpiry.toISOString() }
             : { used_count: (row.used_count ?? 0) + 1 },
         )
+
         .eq("id", row.id);
 
     }
