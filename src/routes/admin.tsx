@@ -92,7 +92,7 @@ function waLink(phone: string, message: string) {
 function codeMessage(code: string, plan: string, days: number, ar: boolean, name?: string | null) {
   const planLabel = plan === "yearly" ? (ar ? "سنوي" : "Yearly") : ar ? "شهري" : "Monthly";
   if (ar) {
-    return `${name ? `أهلاً ${name}،\n` : ""}كود تفعيل اشتراكك في «مولّد الدروس الذكي»:\n${code}\n\nالخطة: ${planLabel} (${days} يوم)\nطريقة التفعيل: سجّل الدخول بحسابك ثم افتح صفحة الاشتراك وأدخل الكود.`;
+    return `${name ? `أهلاً ${name}،\n` : ""}كود تفعيل اشتراكك في «مولّد الدروس الذكي»:\n${code}\n\nالخطة: ${planLabel} (${days} يوم)\nطريقة التفعيل: سجّل دخولك، اذهب لصفحة الاشتراك وأدخل الكود.`;
   }
   return `${name ? `Hi ${name},\n` : ""}Your activation code for Smart Lesson Craft:\n${code}\n\nPlan: ${planLabel} (${days} days)\nSign in, open the subscribe page and enter the code.`;
 }
@@ -419,7 +419,7 @@ function AdminPage() {
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {ar
-              ? "كل عميل ليه كود جديد يُستخدم مرة واحدة فقط ويتقفل بعدها. اكتبي الاسم ورقم الواتساب واضغطي، الكود يتولّد ويُنسخ وتفتح محادثة واتساب برسالة جاهزة."
+              ? "كل عميل ليه كود جديد يُستخدم مرة واحدة فقط ويتقفل بعدها. اكتبي الاسم ورقم الواتساب واضغطي، الكود يتولد ويفتح الواتساب."
               : "Each customer gets a fresh single-use code. Enter the name and WhatsApp number — the code is created, copied, and WhatsApp opens with a ready message."}
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -623,7 +623,7 @@ function AdminPage() {
           <table className="w-full text-sm">
             <thead className="text-muted-foreground">
               <tr>
-                <th className="p-2 text-start">{ar ? "الكود" : "Code"}</th>
+                <th className="p-2 text-start">{ar ? "الكود/السريال" : "Code/Serial"}</th>
                 <th className="p-2 text-start">{ar ? "الخطة" : "Plan"}</th>
                 <th className="p-2 text-start">{ar ? "الأيام" : "Days"}</th>
                 <th className="p-2 text-start">{ar ? "الاستخدام" : "Uses"}</th>
@@ -639,7 +639,7 @@ function AdminPage() {
                   <td className="p-2">{r.plan}</td>
                   <td className="p-2">{r.durationDays}</td>
                   <td className="p-2">
-                    {r.usedCount}/{r.maxUses}
+                    {r.usedCount}/{r.maxUses === null ? "∞" : r.maxUses}
                   </td>
                   <td className="p-2 text-muted-foreground">{r.note ?? "—"}</td>
                   <td className="p-2">
@@ -735,7 +735,7 @@ function AdminPage() {
           <table className="w-full text-sm">
             <thead className="text-muted-foreground">
               <tr>
-                <th className="p-2 text-start">{ar ? "الكود" : "Code"}</th>
+                <th className="p-2 text-start">{ar ? "الكود/السريال" : "Code/Serial"}</th>
                 <th className="p-2 text-start">{ar ? "الخطة" : "Plan"}</th>
                 <th className="p-2 text-start">{ar ? "بريد العميل" : "Customer email"}</th>
                 <th className="p-2 text-start">{ar ? "تاريخ الاستخدام" : "Redeemed on"}</th>
@@ -803,7 +803,7 @@ function AdminPage() {
               })}
               {filteredRedemptions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-6 text-center text-muted-foreground">
                     {redemptionSearch || redemptionStatus !== "all"
                       ? (ar ? "لا توجد نتائج مطابقة." : "No matching results.")
                       : (ar ? "لم يستخدم أي عميل كودًا بعد." : "No codes have been redeemed yet.")}
