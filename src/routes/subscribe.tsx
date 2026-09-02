@@ -21,12 +21,12 @@ export const Route = createFileRoute("/subscribe")({
       { title: "الاشتراك — مولّد الدروس الذكي" },
       {
         name: "description",
-        content: "فعّل اشتراكك بكود التفعيل واستمتع بتوليد غير محدود للأسئلة وأوراق العمل.",
+        content: "فعّل اشتراكك بكود التفعيل واستمتع بـ 3 دروس يوميًا وأوراق عمل بدون علامة مائية.",
       },
       { property: "og:title", content: "اشترك في مولّد الدروس الذكي" },
       {
         property: "og:description",
-        content: "كود تفعيل خاص بكل معلم — توليد غير محدود للدروس والأسئلة وأوراق العمل.",
+        content: "كود تفعيل خاص بكل معلم — 3 دروس يوميًا للدروس والأسئلة وأوراق العمل.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -43,16 +43,16 @@ const PLANS = [
     nameAr: "اشتراك شهري",
     nameEn: "Monthly",
     price: 15,
-    descAr: "توليد غير محدود لمدة 30 يومًا وبدون علامة مائية",
-    descEn: "Unlimited for 30 days, no watermark",
+    descAr: "3 دروس يوميًا لمدة 30 يومًا وبدون علامة مائية",
+    descEn: "3 lessons per day for 30 days, no watermark",
   },
   {
     id: "yearly",
     nameAr: "اشتراك سنوي",
     nameEn: "Yearly",
     price: 50,
-    descAr: "توليد غير محدود لمدة 365 يومًا وبدون علامة مائية",
-    descEn: "Unlimited for 365 days, no watermark",
+    descAr: "3 دروس يوميًا لمدة 365 يومًا وبدون علامة مائية",
+    descEn: "3 lessons per day for 365 days, no watermark",
   },
 ] as const;
 
@@ -134,8 +134,8 @@ function SubscribePage() {
           <h1 className="text-2xl font-bold">{ar ? "الاشتراك المميز" : "Premium subscription"}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {ar
-              ? "الخطة المجانية: 3 محاولات يوميًا مع علامة مائية على الطباعة. الاشتراك المميز: توليد غير محدود وبدون علامة مائية."
-              : "Free: 3 generations per day with a print watermark. Premium: unlimited, no watermark."}
+              ? "الخطة المجانية: 3 محاولات يوميًا مع علامة مائية على الطباعة. الاشتراك المميز: 3 دروس يوميًا وبدون علامة مائية."
+              : "Free: 3 generations per day with a print watermark. Premium: 3 lessons per day, no watermark."}
           </p>
         </div>
 
@@ -148,8 +148,8 @@ function SubscribePage() {
                   ? `خطتك الحالية: مجانية — بقيت ${status.remainingToday} محاولة اليوم (3 يوميًا)`
                   : `Current plan: Free — ${status.remainingToday} left today (3 per day)`
                 : ar
-                  ? "خطتك الحالية: مميزة (غير محدودة)"
-                  : "Current plan: Premium (unlimited)"}
+                  ? "خطتك الحالية: مميزة (3 دروس يوميًا)"
+                  : "Current plan: Premium (3 lessons per day)"}
             </div>
             {status.plan !== "free" && status.daysRemaining !== null && (
               <div className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
