@@ -149,6 +149,13 @@ function AuthPage() {
               : "Invalid input: check the email address and activation code.",
           );
         }
+        if (result.code === "server_config") {
+          throw new Error(
+            ar
+              ? "إعدادات الخادم ناقصة (مفتاح الخدمة غير مضبوط). تواصل مع الدعم."
+              : "Server configuration is incomplete (service key missing). Contact support.",
+          );
+        }
         throw new Error(ar ? "تعذّر إعادة تعيين كلمة المرور." : "Could not reset password.");
       }
       toast.success(

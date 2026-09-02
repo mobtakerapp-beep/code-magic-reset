@@ -104,8 +104,19 @@ export type ResetWithCodeResult =
   | { ok: true }
   | {
       ok: false;
-      code: "no_account" | "bad_code" | "weak_password" | "invalid_input" | "failed";
+      code:
+        | "no_account"
+        | "bad_code"
+        | "weak_password"
+        | "invalid_input"
+        | "server_config"
+        | "failed";
     };
+
+function isMissingAdminConfig(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e ?? "");
+  return msg.includes("Missing Supabase environment variable");
+}
 
 /**
  * In-app password reset: no email is involved. The user proves ownership with
@@ -131,7 +142,7 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
     } catch (e) {
       console.error("[resetPasswordWithCode] admin client unavailable", e);
-      return { ok: false, code: "failed" };
+      return { ok: false, code: isMissingAdminConfig(e) ? "server_config" : "failed" };
     }
 
     const isAdminRecovery = ADMIN_EMAILS.includes(normalizedEmail) && serial === ADMIN_RECOVERY_CODE;
@@ -159,7 +170,7 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       }
     } catch (e) {
       console.error("[resetPasswordWithCode] listUsers failed", e);
-      return { ok: false, code: "failed" };
+      return { ok: false, code: isMissingAdminConfig(e) ? "server_config" : "failed" };
     }
     if (!target) return { ok: false, code: "no_account" };
 
