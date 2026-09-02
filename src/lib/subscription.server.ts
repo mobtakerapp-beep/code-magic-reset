@@ -65,7 +65,7 @@ export async function getSubscriptionStatus(
   let plan: "free" | "monthly" | "yearly" = "free";
   let status: SubscriptionStatus["status"] = "active";
   let generationsUsed = 0;
-  let generationsLimit = isAdmin ? UNLIMITED_LIMIT : FREE_DAILY_LIMIT;
+  let generationsLimit = isAdmin ? UNLIMITED_LIMIT : FREE_TOTAL_LIMIT;
   let resetAt = now;
 
   if (sub) {
@@ -87,20 +87,19 @@ export async function getSubscriptionStatus(
         if (expiry < now) {
           status = "expired";
           plan = "free";
-          generationsLimit = FREE_DAILY_LIMIT;
+          generationsLimit = FREE_TOTAL_LIMIT;
         } else {
-          // المشترك: 3 دروس يوميًا فقط
           generationsLimit = PAID_DAILY_LIMIT;
         }
       } else if (plan === "free") {
-        generationsLimit = FREE_DAILY_LIMIT;
+        generationsLimit = FREE_TOTAL_LIMIT;
       } else {
-        // المشترك: 3 دروس يوميًا فقط
         generationsLimit = PAID_DAILY_LIMIT;
       }
     }
 
-    if (!isSameDay(resetAt, now)) {
+    // المجاني لا يُصفَّر يوميًا: محاولة واحدة فقط مدى الحياة
+    if (plan !== "free" && !isSameDay(resetAt, now)) {
       generationsUsed = 0;
       await supabase
         .from("subscriptions")
