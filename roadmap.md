@@ -11,3 +11,9 @@
 
 
 - [x] إعادة إنشاء مخطط قاعدة البيانات بعد تفعيل Lovable Cloud (حسابات، اشتراكات، أكواد تفعيل، أدوار، مشاركات ونتائج الطلبة)
+
+## Password reset via activation code (Sep 2026)
+- Source: GitHub repo mobtakerapp-beep/remix-of-...-gemini-migration-update (imported)
+- resetPasswordWithCode accepts any active, non-expired code; auto-records code_redemptions
+- Error codes weak_password / invalid_input surfaced in auth.index.tsx
+- Verify with typecheck + build; do NOT publish
