@@ -157,7 +157,7 @@ export async function incrementGenerationUsage(
 
   const now = new Date();
   const resetAt = new Date(sub.reset_at ?? now.toISOString());
-  const shouldReset = !isSameDay(resetAt, now);
+  const shouldReset = sub.plan !== "free" && !isSameDay(resetAt, now);
 
   await supabase
     .from("subscriptions")
