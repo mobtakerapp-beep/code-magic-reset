@@ -117,16 +117,17 @@ export const redeemCode = createServerFn({ method: "POST" })
         user_id: context.userId,
         device_fingerprint: data.device ?? null,
       });
-      const codeUpdate: Record<string, unknown> = { used_count: (row.used_count ?? 0) + 1 };
-      if (neverUsed) {
-        const codeExpiry = new Date();
-        codeExpiry.setDate(codeExpiry.getDate() + (row.duration_days ?? 30));
-        codeUpdate.expires_at = codeExpiry.toISOString();
-      }
+      const codeExpiry = new Date();
+      codeExpiry.setDate(codeExpiry.getDate() + (row.duration_days ?? 30));
       await supabaseAdmin
         .from("activation_codes")
-        .update(codeUpdate)
+        .update(
+          neverUsed
+            ? { used_count: (row.used_count ?? 0) + 1, expires_at: codeExpiry.toISOString() }
+            : { used_count: (row.used_count ?? 0) + 1 },
+        )
         .eq("id", row.id);
+
     }
 
 
