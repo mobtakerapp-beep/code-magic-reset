@@ -115,6 +115,17 @@ export type ResetWithCodeResult =
 export const resetPasswordWithCode = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => resetWithCodeSchema.parse(input))
   .handler(async ({ data }): Promise<ResetWithCodeResult> => {
+    const normalizedEmail = data.email.trim().toLowerCase();
+    const serial = data.code.trim().toUpperCase();
+    const newPassword = data.password;
+
+    // Explicit input validation so the client can show precise messages.
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    if (!emailOk || serial.length < 4) return { ok: false, code: "invalid_input" };
+    if (newPassword.trim().length < 6 || newPassword.length > 72) {
+      return { ok: false, code: "weak_password" };
+    }
+
     let supabaseAdmin;
     try {
       ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
@@ -123,8 +134,6 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       return { ok: false, code: "failed" };
     }
 
-    const normalizedEmail = data.email.toLowerCase();
-    const serial = data.code.trim().toUpperCase();
     const isAdminRecovery = ADMIN_EMAILS.includes(normalizedEmail) && serial === ADMIN_RECOVERY_CODE;
 
     // Find the account. If the fixed admin account was lost during a backend
@@ -142,7 +151,7 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       if (!target && isAdminRecovery) {
         const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: normalizedEmail,
-          password: data.password,
+          password: newPassword,
           email_confirm: true,
         });
         if (createError) throw createError;
@@ -154,24 +163,46 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
     }
     if (!target) return { ok: false, code: "no_account" };
 
-    // Verify the serial was redeemed by this account.
+    // Any valid activation code works: it must exist, be active and not
+    // expired. It may already belong to this account, or be unused.
     const { data: codeRow } = await supabaseAdmin
       .from("activation_codes")
-      .select("id")
+      .select("id, active, expires_at, max_uses, used_count")
       .eq("code", serial)
       .maybeSingle();
-    if (!codeRow) return { ok: false, code: "bad_code" };
 
-    const { data: redemption } = await supabaseAdmin
-      .from("code_redemptions")
-      .select("id")
-      .eq("code_id", codeRow.id)
-      .eq("user_id", target.id)
-      .maybeSingle();
-    if (!redemption && !isAdminRecovery) return { ok: false, code: "bad_code" };
+    const codeValid =
+      !!codeRow &&
+      codeRow.active !== false &&
+      (!codeRow.expires_at || new Date(codeRow.expires_at).getTime() > Date.now());
+    if (!codeValid && !isAdminRecovery) return { ok: false, code: "bad_code" };
+
+    if (codeRow) {
+      const { data: redemption } = await supabaseAdmin
+        .from("code_redemptions")
+        .select("id")
+        .eq("code_id", codeRow.id)
+        .eq("user_id", target.id)
+        .maybeSingle();
+
+      // Record the usage automatically when this account has not used it yet.
+      if (!redemption) {
+        const { error: redemptionError } = await supabaseAdmin
+          .from("code_redemptions")
+          .insert({ code_id: codeRow.id, user_id: target.id });
+        if (redemptionError) {
+          console.error("[resetPasswordWithCode] serial link failed", redemptionError);
+          return { ok: false, code: "failed" };
+        }
+        await supabaseAdmin
+          .from("activation_codes")
+          .update({ used_count: (codeRow.used_count ?? 0) + 1 })
+          .eq("id", codeRow.id);
+      }
+    }
 
     if (isAdminRecovery) {
-      // Permanent binding: role, premium subscription and serial redemption.
+      // Permanent binding: role and premium subscription for the owner account.
       await supabaseAdmin.rpc("bootstrap_account", { _user_id: target.id });
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
@@ -180,25 +211,18 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
         console.error("[resetPasswordWithCode] admin role failed", roleError);
         return { ok: false, code: "failed" };
       }
-
-
-      if (!redemption) {
-        const { error: redemptionError } = await supabaseAdmin
-          .from("code_redemptions")
-          .insert({ code_id: codeRow.id, user_id: target.id });
-        if (redemptionError) {
-          console.error("[resetPasswordWithCode] admin serial link failed", redemptionError);
-          return { ok: false, code: "failed" };
-        }
-      }
     }
 
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       target.id,
-      { password: data.password },
+      { password: newPassword },
     );
     if (updateError) {
       console.error("[resetPasswordWithCode] update failed", updateError);
+      const msg = (updateError.message || "").toLowerCase();
+      if (msg.includes("weak") || msg.includes("pwned") || msg.includes("password")) {
+        return { ok: false, code: "weak_password" };
+      }
       return { ok: false, code: "failed" };
     }
     return { ok: true };
