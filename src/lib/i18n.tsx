@@ -191,7 +191,7 @@ const dict = {
     teacherName: "Teacher name",
     teacherPlaceholder: "Type your name to show it on the printout",
     preparedBy: "Prepared by:",
-    limitReached: "You've used your free daily limit. Subscribe for unlimited access.",
+    limitReached: "You've used your free generation. Subscribe for 3 lessons per day.",
     subscriptionExpired: "Your subscription has expired. Sign in again or renew.",
     signInRequired: "Please sign in first to generate lessons.",
     googleSignIn: "Continue with Google",
