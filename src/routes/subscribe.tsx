@@ -151,6 +151,21 @@ function SubscribePage() {
                   ? "خطتك الحالية: مميزة (غير محدودة)"
                   : "Current plan: Premium (unlimited)"}
             </div>
+            {status.plan !== "free" && status.daysRemaining !== null && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                  {ar
+                    ? `باقي ${status.daysRemaining} يوم على انتهاء اشتراكك`
+                    : `${status.daysRemaining} days remaining`}
+                </span>
+                {status.expiresAt && (
+                  <span className="text-xs">
+                    {ar ? "ينتهي في " : "Expires on "}
+                    {new Date(status.expiresAt).toLocaleDateString(ar ? "ar-EG" : "en-GB")}
+                  </span>
+                )}
+              </div>
+            )}
           </Card>
         )}
 
