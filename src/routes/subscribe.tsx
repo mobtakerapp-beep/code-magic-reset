@@ -134,8 +134,8 @@ function SubscribePage() {
           <h1 className="text-2xl font-bold">{ar ? "الاشتراك المميز" : "Premium subscription"}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {ar
-              ? "الخطة المجانية: مرة واحدة شهريًا مع علامة مائية على الطباعة. الاشتراك المميز: توليد غير محدود وبدون علامة مائية."
-              : "Free: 1 generation per month with a print watermark. Premium: unlimited, no watermark."}
+              ? "الخطة المجانية: 3 محاولات يوميًا مع علامة مائية على الطباعة. الاشتراك المميز: توليد غير محدود وبدون علامة مائية."
+              : "Free: 3 generations per day with a print watermark. Premium: unlimited, no watermark."}
           </p>
         </div>
 
@@ -145,8 +145,8 @@ function SubscribePage() {
               <BadgeCheck className="size-4 text-primary" />
               {status.plan === "free"
                 ? ar
-                  ? `خطتك الحالية: مجانية — بقيت ${status.remainingToday} محاولة هذا الشهر`
-                  : `Current plan: Free — ${status.remainingToday} left this month`
+                  ? `خطتك الحالية: مجانية — بقيت ${status.remainingToday} محاولة اليوم (3 يوميًا)`
+                  : `Current plan: Free — ${status.remainingToday} left today (3 per day)`
                 : ar
                   ? "خطتك الحالية: مميزة (غير محدودة)"
                   : "Current plan: Premium (unlimited)"}

@@ -53,9 +53,13 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-/** A redemption is "active" while the subscriber's subscription has not expired. */
+/** A redemption is "active" until the end of its last day; only then "expired". */
 function isActive(r: RedemptionRow) {
-  return Boolean(r.subscriptionExpiresAt && new Date(r.subscriptionExpiresAt) > new Date());
+  if (!r.subscriptionExpiresAt) return true;
+  const end = new Date(r.subscriptionExpiresAt);
+  if (Number.isNaN(end.getTime())) return true;
+  end.setHours(23, 59, 59, 999);
+  return end.getTime() >= Date.now();
 }
 
 /** Whole days left on the subscriber's subscription (0 when expired). */

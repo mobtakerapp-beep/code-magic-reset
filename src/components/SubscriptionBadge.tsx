@@ -88,8 +88,8 @@ export function SubscriptionBadge({ onLimitReached }: { onLimitReached?: () => v
         {isFree
           ? status
             ? ar
-              ? `مجاني — بقيت ${status.remainingToday} محاولة هذا الشهر`
-              : `Free — ${status.remainingToday} left this month`
+              ? `مجاني — بقيت ${status.remainingToday} محاولة اليوم`
+              : `Free — ${status.remainingToday} left today`
             : ar
               ? "حسابي"
               : "My account"
