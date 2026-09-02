@@ -158,9 +158,10 @@ export async function checkGenerationLogCap(
   userId: string,
   plan: "free" | "monthly" | "yearly",
 ): Promise<{ ok: boolean; count: number; cap: number }> {
-  const { data: count, error } = await supabase.rpc("count_generations_today", {
+  const { data, error } = await (supabase.rpc as any)("count_generations_today", {
     _user_id: userId,
   });
+  const count = typeof data === "number" ? data : Number(data ?? 0);
   if (error) {
     // If the RPC fails open, we still allow generation but surface it in logs.
     console.error("count_generations_today failed", error);
