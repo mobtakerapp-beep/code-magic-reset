@@ -104,8 +104,19 @@ export type ResetWithCodeResult =
   | { ok: true }
   | {
       ok: false;
-      code: "no_account" | "bad_code" | "weak_password" | "invalid_input" | "failed";
+      code:
+        | "no_account"
+        | "bad_code"
+        | "weak_password"
+        | "invalid_input"
+        | "server_config"
+        | "failed";
     };
+
+function isMissingAdminConfig(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e ?? "");
+  return msg.includes("Missing Supabase environment variable");
+}
 
 /**
  * In-app password reset: no email is involved. The user proves ownership with
