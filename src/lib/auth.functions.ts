@@ -95,14 +95,17 @@ export const signUpDirect = createServerFn({ method: "POST" })
 const emailSchema = z.object({ email: z.string().trim().email().max(255) });
 
 const resetWithCodeSchema = z.object({
-  email: z.string().trim().email().max(255),
-  code: z.string().trim().min(4).max(64),
-  password: z.string().min(6).max(72),
+  email: z.string().max(255),
+  code: z.string().max(64),
+  password: z.string().max(200),
 });
 
 export type ResetWithCodeResult =
   | { ok: true }
-  | { ok: false; code: "no_account" | "bad_code" | "failed" };
+  | {
+      ok: false;
+      code: "no_account" | "bad_code" | "weak_password" | "invalid_input" | "failed";
+    };
 
 /**
  * In-app password reset: no email is involved. The user proves ownership with
