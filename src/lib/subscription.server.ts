@@ -19,11 +19,12 @@ export type SubscriptionStatus = {
 };
 
 const FREE_DAILY_LIMIT = 3;
-const PAID_LIMIT = 999999;
+const PAID_DAILY_LIMIT = 3; // تم تغييره من 999999 إلى 3 دروس يوميًا
+const UNLIMITED_LIMIT = 999999; // بلا حدود للأدمن
 
 /** Hard daily cap backed by ai_generation_log (abuse protection). */
 const FREE_GENERATION_LOG_CAP = 10;
-const PAID_GENERATION_LOG_CAP = 300;
+const PAID_GENERATION_LOG_CAP = 10; // تم تغييره من 300 إلى 10 لمطابقة الحد الأقصى 3 دروس
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -55,8 +56,8 @@ export async function getSubscriptionStatus(
   const profile = profileResult.data;
   const email = userResult.data?.user?.email ?? "";
 
-  // 👈 التحقق المزدوج بالأيقونة والإيميل والـ ID لضمان التطابق التام
-  const isVIP = 
+  // 👈 التحقق من حساب الأدمن - بلا حدود على المحاولات
+  const isAdmin = 
     email === "uuxz272@gmail.com" || 
     userId === "3494f40c-adb0-4a3c-b101-27bd69a5b999";
 
@@ -64,7 +65,7 @@ export async function getSubscriptionStatus(
   let plan: "free" | "monthly" | "yearly" = "free";
   let status: SubscriptionStatus["status"] = "active";
   let generationsUsed = 0;
-  let generationsLimit = isVIP ? PAID_LIMIT : FREE_DAILY_LIMIT;
+  let generationsLimit = isAdmin ? UNLIMITED_LIMIT : FREE_DAILY_LIMIT;
   let resetAt = now;
 
   if (sub) {
@@ -73,10 +74,11 @@ export async function getSubscriptionStatus(
     generationsUsed = sub.generations_used ?? 0;
     resetAt = new Date(sub.reset_at ?? now.toISOString());
 
-    if (isVIP) {
+    if (isAdmin) {
+      // الأدمن: بلا حدود دائمًا
       plan = "yearly";
       status = "active";
-      generationsLimit = PAID_LIMIT;
+      generationsLimit = UNLIMITED_LIMIT;
     } else {
       if (plan !== "free" && sub.expires_at) {
         // Still active through the end of the final day.
@@ -87,12 +89,14 @@ export async function getSubscriptionStatus(
           plan = "free";
           generationsLimit = FREE_DAILY_LIMIT;
         } else {
-          generationsLimit = PAID_LIMIT;
+          // المشترك: 3 دروس يوميًا فقط
+          generationsLimit = PAID_DAILY_LIMIT;
         }
       } else if (plan === "free") {
         generationsLimit = FREE_DAILY_LIMIT;
       } else {
-        generationsLimit = PAID_LIMIT;
+        // المشترك: 3 دروس يوميًا فقط
+        generationsLimit = PAID_DAILY_LIMIT;
       }
     }
 
@@ -105,7 +109,7 @@ export async function getSubscriptionStatus(
     }
   }
 
-  const canGenerate = isVIP ? true : generationsUsed < generationsLimit;
+  const canGenerate = isAdmin ? true : generationsUsed < generationsLimit;
 
   // Days left on the paid subscription (rounded up, never negative).
   const expiresAt = plan === "free" ? null : (sub?.expires_at ?? null);
@@ -122,7 +126,7 @@ export async function getSubscriptionStatus(
     teacherName: profile?.teacher_name ?? "",
     school: profile?.school ?? "",
     email,
-    remainingToday: isVIP ? PAID_LIMIT : Math.max(0, generationsLimit - generationsUsed),
+    remainingToday: isAdmin ? UNLIMITED_LIMIT : Math.max(0, generationsLimit - generationsUsed),
     expiresAt,
     daysRemaining,
   };
@@ -135,13 +139,13 @@ export async function incrementGenerationUsage(
   const { data: user } = await supabase.auth.getUser();
   const email = user.user?.email ?? "";
 
-  // 👈 الحماية هنا كمان: لو إنتي أو الـ ID بتاعك، ما تزودش العداد ولا تعمل أي حاجة!
-  const isVIP = 
+  // 👈 الحماية: إذا كنت أدمن، ما تزيد العداد ولا تسجل أي استهلاك
+  const isAdmin = 
     email === "uuxz272@gmail.com" || 
     userId === "3494f40c-adb0-4a3c-b101-27bd69a5b999";
 
-  if (isVIP) {
-    return; // اخرج فوراً وما تسجلش أي استهلاك لحسابك
+  if (isAdmin) {
+    return; // اخرج فوراً وما تسجلش أي استهلاك
   }
 
   const { data: sub } = await supabase
@@ -170,6 +174,18 @@ export async function checkGenerationLogCap(
   userId: string,
   plan: "free" | "monthly" | "yearly",
 ): Promise<{ ok: boolean; count: number; cap: number }> {
+  const { data: user } = await supabase.auth.getUser();
+  const email = user.user?.email ?? "";
+
+  // الأدمن: لا يوجد حد أقصى للقيود
+  const isAdmin = 
+    email === "uuxz272@gmail.com" || 
+    userId === "3494f40c-adb0-4a3c-b101-27bd69a5b999";
+
+  if (isAdmin) {
+    return { ok: true, count: 0, cap: UNLIMITED_LIMIT };
+  }
+
   const { data, error } = await (supabase.rpc as any)("count_generations_today", {
     _user_id: userId,
   });
@@ -188,6 +204,18 @@ export async function logGeneration(
   userId: string,
   mode: string,
 ): Promise<void> {
+  const { data: user } = await supabase.auth.getUser();
+  const email = user.user?.email ?? "";
+
+  // الأدمن: لا تسجل الاستخدام
+  const isAdmin = 
+    email === "uuxz272@gmail.com" || 
+    userId === "3494f40c-adb0-4a3c-b101-27bd69a5b999";
+
+  if (isAdmin) {
+    return; // لا تسجل أي شيء للأدمن
+  }
+
   const { error } = await supabase.from("ai_generation_log" as never).insert({
     user_id: userId,
     mode,
