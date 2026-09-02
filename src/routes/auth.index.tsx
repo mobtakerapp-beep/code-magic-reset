@@ -13,7 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 import { getOwnerCredentials, type OwnerCredentials } from "@/lib/access.functions";
-import { confirmExistingEmail, resetPasswordWithCode, signUpDirect } from "@/lib/auth.functions";
+import { resetPasswordWithCode, signUpDirect } from "@/lib/auth.functions";
 import { useI18n } from "@/lib/i18n";
 import { saveProfile } from "@/lib/subscription.functions";
 
@@ -38,7 +38,6 @@ function AuthPage() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
   const createAccount = useServerFn(signUpDirect);
-  const confirmEmail = useServerFn(confirmExistingEmail);
   const saveProfileFn = useServerFn(saveProfile);
   const resetPasswordFn = useServerFn(resetPasswordWithCode);
   const ownerCreds = useServerFn(getOwnerCredentials);
@@ -229,22 +228,10 @@ function AuthPage() {
         toast.success(ar ? "تم إنشاء الحساب وتسجيل الدخول!" : "Account created — you're signed in!");
         navigate({ to: "/" });
       } else {
-        let { error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-
-        // Older accounts may still be flagged as unconfirmed: confirm them
-        // server-side and retry once, so nobody is stuck on a confirmation email.
-        if (error && /confirm/i.test(error.message)) {
-          const fixed = await confirmEmail({ data: { email: email.trim() } });
-          if (fixed.ok) {
-            ({ error } = await supabase.auth.signInWithPassword({
-              email: email.trim(),
-              password,
-            }));
-          }
-        }
         if (error) throw error;
         persistEmail();
         toast.success(ar ? "تم تسجيل الدخول!" : "Signed in!");
