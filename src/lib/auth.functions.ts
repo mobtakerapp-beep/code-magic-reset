@@ -178,7 +178,7 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
     // expired. It may already belong to this account, or be unused.
     const { data: codeRow } = await supabaseAdmin
       .from("activation_codes")
-      .select("id, active, expires_at, max_uses, used_count")
+      .select("id, active, expires_at, max_uses, used_count, plan, duration_days")
       .eq("code", serial)
       .maybeSingle();
 
@@ -200,8 +200,12 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
         .eq("user_id", target.id)
         .maybeSingle();
 
-      // Record the usage automatically when this account has not used it yet.
+      // Record the usage automatically when this account has not used it yet,
+      // and start the subscription window from this moment.
       if (!redemption) {
+        if ((codeRow.used_count ?? 0) >= (codeRow.max_uses ?? 1) && !isAdminRecovery) {
+          return { ok: false, code: "bad_code" };
+        }
         const { error: redemptionError } = await supabaseAdmin
           .from("code_redemptions")
           .insert({ code_id: codeRow.id, user_id: target.id });
@@ -213,6 +217,29 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
           .from("activation_codes")
           .update({ used_count: (codeRow.used_count ?? 0) + 1 })
           .eq("id", codeRow.id);
+
+        if (!isAdminRecovery && (codeRow.plan === "monthly" || codeRow.plan === "yearly")) {
+          const expires = new Date();
+          expires.setDate(expires.getDate() + (codeRow.duration_days ?? 30));
+          const payload = {
+            user_id: target.id,
+            plan: codeRow.plan,
+            status: "active",
+            expires_at: expires.toISOString(),
+            generations_used: 0,
+            reset_at: new Date().toISOString(),
+          };
+          const { data: existingSub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("id")
+            .eq("user_id", target.id)
+            .maybeSingle();
+          if (existingSub) {
+            await supabaseAdmin.from("subscriptions").update(payload).eq("user_id", target.id);
+          } else {
+            await supabaseAdmin.from("subscriptions").insert(payload);
+          }
+        }
       }
     }
 

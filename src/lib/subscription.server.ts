@@ -79,7 +79,9 @@ export async function getSubscriptionStatus(
       generationsLimit = PAID_LIMIT;
     } else {
       if (plan !== "free" && sub.expires_at) {
+        // Still active through the end of the final day.
         const expiry = new Date(sub.expires_at);
+        expiry.setHours(23, 59, 59, 999);
         if (expiry < now) {
           status = "expired";
           plan = "free";

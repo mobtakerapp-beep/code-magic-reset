@@ -242,7 +242,9 @@ export const adminListRedemptions = createServerFn({ method: "GET" })
 
     const { data: redemptions } = await supabaseAdmin
       .from("code_redemptions")
-      .select("id, user_id, device_fingerprint, created_at, activation_codes(code, plan, note)")
+      .select(
+        "id, user_id, device_fingerprint, created_at, activation_codes(code, plan, note, duration_days)",
+      )
       .order("created_at", { ascending: false })
       .limit(300);
 
@@ -251,9 +253,20 @@ export const adminListRedemptions = createServerFn({ method: "GET" })
 
     const emailById = new Map<string, string>();
     if (userIds.length > 0) {
-      const { data: usersPage } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-      for (const u of usersPage?.users ?? []) {
-        if (u.email) emailById.set(u.id, u.email);
+      try {
+        for (let page = 1; page <= 10; page++) {
+          const { data: usersPage, error } = await supabaseAdmin.auth.admin.listUsers({
+            page,
+            perPage: 1000,
+          });
+          if (error) throw error;
+          for (const u of usersPage?.users ?? []) {
+            if (u.email) emailById.set(u.id, u.email);
+          }
+          if ((usersPage?.users?.length ?? 0) < 1000) break;
+        }
+      } catch (e) {
+        console.error("[adminListRedemptions] listUsers failed", e);
       }
     }
 
@@ -261,15 +274,25 @@ export const adminListRedemptions = createServerFn({ method: "GET" })
     if (userIds.length > 0) {
       const { data: subs } = await supabaseAdmin
         .from("subscriptions")
-        .select("user_id, expires_at")
+        .select("user_id, expires_at, plan")
         .in("user_id", userIds);
-      for (const s of subs ?? []) expiryById.set(s.user_id, s.expires_at);
+      for (const s of subs ?? []) {
+        if (s.plan !== "free") expiryById.set(s.user_id, s.expires_at);
+      }
     }
 
     return rows.map((r) => {
       const codeRow = Array.isArray(r.activation_codes)
         ? r.activation_codes[0]
         : r.activation_codes;
+      // The validity window starts at first use (redemption time). Fall back to
+      // redeemedAt + duration when the subscription row is missing.
+      let expiresAt = expiryById.get(r.user_id) ?? null;
+      if (!expiresAt) {
+        const fallback = new Date(r.created_at);
+        fallback.setDate(fallback.getDate() + (codeRow?.duration_days ?? 30));
+        expiresAt = fallback.toISOString();
+      }
       return {
         id: r.id,
         code: codeRow?.code ?? "—",
@@ -279,7 +302,7 @@ export const adminListRedemptions = createServerFn({ method: "GET" })
         userEmail: emailById.get(r.user_id) ?? null,
         device: r.device_fingerprint,
         redeemedAt: r.created_at,
-        subscriptionExpiresAt: expiryById.get(r.user_id) ?? null,
+        subscriptionExpiresAt: expiresAt,
       };
     });
   });
