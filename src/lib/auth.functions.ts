@@ -269,3 +269,62 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+/**
+ * Confirms the email for unconfirmed old accounts.
+ * Used during login to unblock accounts that were created before auto-confirm was enabled.
+ */
+export const confirmUnconfirmedEmail = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => emailSchema.parse(input))
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    let supabaseAdmin;
+    try {
+      ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
+    } catch (e) {
+      console.error("[confirmUnconfirmedEmail] admin client unavailable", e);
+      return { ok: false };
+    }
+
+    try {
+      // Get the user by email
+      const { data: list, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+
+      if (listError) {
+        console.error("[confirmUnconfirmedEmail] list error", listError);
+        return { ok: false };
+      }
+
+      const target = list.users.find(
+        (u) => (u.email ?? "").toLowerCase() === data.email.toLowerCase(),
+      );
+
+      if (!target) {
+        console.warn(`[confirmUnconfirmedEmail] user not found: ${data.email}`);
+        return { ok: false };
+      }
+
+      // If already confirmed, return success
+      if (target.email_confirmed_at) {
+        return { ok: true };
+      }
+
+      // Confirm the email
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(target.id, {
+        email_confirm: true,
+      });
+
+      if (updateError) {
+        console.error("[confirmUnconfirmedEmail] update error", updateError);
+        return { ok: false };
+      }
+
+      console.log(`[confirmUnconfirmedEmail] successfully confirmed ${data.email}`);
+      return { ok: true };
+    } catch (e) {
+      console.error("[confirmUnconfirmedEmail] unexpected error", e);
+      return { ok: false };
+    }
+  });
