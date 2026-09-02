@@ -18,13 +18,13 @@ export type SubscriptionStatus = {
   daysRemaining: number | null;
 };
 
-const FREE_DAILY_LIMIT = 3;
-const PAID_DAILY_LIMIT = 3; // تم تغييره من 999999 إلى 3 دروس يوميًا
+const FREE_TOTAL_LIMIT = 1; // المجاني: محاولة واحدة فقط مدى الحياة
+const PAID_DAILY_LIMIT = 3; // المشترك: 3 دروس يوميًا
 const UNLIMITED_LIMIT = 999999; // بلا حدود للأدمن
 
-/** Hard daily cap backed by ai_generation_log (abuse protection). */
-const FREE_GENERATION_LOG_CAP = 10;
-const PAID_GENERATION_LOG_CAP = 10; // تم تغييره من 300 إلى 10 لمطابقة الحد الأقصى 3 دروس
+/** Hard cap backed by ai_generation_log (abuse protection). */
+const FREE_GENERATION_LOG_CAP = 1;
+const PAID_GENERATION_LOG_CAP = 3;
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -65,7 +65,7 @@ export async function getSubscriptionStatus(
   let plan: "free" | "monthly" | "yearly" = "free";
   let status: SubscriptionStatus["status"] = "active";
   let generationsUsed = 0;
-  let generationsLimit = isAdmin ? UNLIMITED_LIMIT : FREE_DAILY_LIMIT;
+  let generationsLimit = isAdmin ? UNLIMITED_LIMIT : FREE_TOTAL_LIMIT;
   let resetAt = now;
 
   if (sub) {
@@ -87,20 +87,19 @@ export async function getSubscriptionStatus(
         if (expiry < now) {
           status = "expired";
           plan = "free";
-          generationsLimit = FREE_DAILY_LIMIT;
+          generationsLimit = FREE_TOTAL_LIMIT;
         } else {
-          // المشترك: 3 دروس يوميًا فقط
           generationsLimit = PAID_DAILY_LIMIT;
         }
       } else if (plan === "free") {
-        generationsLimit = FREE_DAILY_LIMIT;
+        generationsLimit = FREE_TOTAL_LIMIT;
       } else {
-        // المشترك: 3 دروس يوميًا فقط
         generationsLimit = PAID_DAILY_LIMIT;
       }
     }
 
-    if (!isSameDay(resetAt, now)) {
+    // المجاني لا يُصفَّر يوميًا: محاولة واحدة فقط مدى الحياة
+    if (plan !== "free" && !isSameDay(resetAt, now)) {
       generationsUsed = 0;
       await supabase
         .from("subscriptions")
@@ -158,7 +157,7 @@ export async function incrementGenerationUsage(
 
   const now = new Date();
   const resetAt = new Date(sub.reset_at ?? now.toISOString());
-  const shouldReset = !isSameDay(resetAt, now);
+  const shouldReset = sub.plan !== "free" && !isSameDay(resetAt, now);
 
   await supabase
     .from("subscriptions")
