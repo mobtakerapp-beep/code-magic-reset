@@ -182,10 +182,14 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       .eq("code", serial)
       .maybeSingle();
 
+    const codeNeverUsed = !codeRow || (codeRow.used_count ?? 0) === 0;
     const codeValid =
       !!codeRow &&
       codeRow.active !== false &&
-      (!codeRow.expires_at || new Date(codeRow.expires_at).getTime() > Date.now());
+      (codeNeverUsed ||
+        !codeRow.expires_at ||
+        new Date(codeRow.expires_at).getTime() > Date.now());
+
     if (!codeValid && !isAdminRecovery) return { ok: false, code: "bad_code" };
 
     if (codeRow) {
