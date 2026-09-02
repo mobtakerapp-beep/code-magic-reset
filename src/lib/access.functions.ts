@@ -94,7 +94,11 @@ export const redeemCode = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!row || !row.active) return { ok: false as const, reason: "invalid" };
-    if (row.expires_at && new Date(row.expires_at) < new Date())
+
+    // A code that has never been used cannot expire: its validity window only
+    // starts on first activation.
+    const neverUsed = (row.used_count ?? 0) === 0;
+    if (!neverUsed && row.expires_at && new Date(row.expires_at) < new Date())
       return { ok: false as const, reason: "expired" };
 
     const { data: mine } = await supabaseAdmin
@@ -113,11 +117,19 @@ export const redeemCode = createServerFn({ method: "POST" })
         user_id: context.userId,
         device_fingerprint: data.device ?? null,
       });
+      const codeExpiry = new Date();
+      codeExpiry.setDate(codeExpiry.getDate() + (row.duration_days ?? 30));
       await supabaseAdmin
         .from("activation_codes")
-        .update({ used_count: (row.used_count ?? 0) + 1 })
+        .update(
+          neverUsed
+            ? { used_count: (row.used_count ?? 0) + 1, expires_at: codeExpiry.toISOString() }
+            : { used_count: (row.used_count ?? 0) + 1 },
+        )
         .eq("id", row.id);
+
     }
+
 
     const expires = new Date();
     expires.setDate(expires.getDate() + (row.duration_days ?? 30));
