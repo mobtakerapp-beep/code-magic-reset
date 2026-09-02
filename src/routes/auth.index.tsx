@@ -13,7 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 import { getOwnerCredentials, type OwnerCredentials } from "@/lib/access.functions";
-import { resetPasswordWithCode, signUpDirect } from "@/lib/auth.functions";
+import { confirmUnconfirmedEmail, resetPasswordWithCode, signUpDirect } from "@/lib/auth.functions";
 import { useI18n } from "@/lib/i18n";
 import { saveProfile } from "@/lib/subscription.functions";
 
@@ -38,6 +38,7 @@ function AuthPage() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
   const createAccount = useServerFn(signUpDirect);
+  const confirmUnconfirmed = useServerFn(confirmUnconfirmedEmail);
   const saveProfileFn = useServerFn(saveProfile);
   const resetPasswordFn = useServerFn(resetPasswordWithCode);
   const ownerCreds = useServerFn(getOwnerCredentials);
@@ -228,10 +229,26 @@ function AuthPage() {
         toast.success(ar ? "تم إنشاء الحساب وتسجيل الدخول!" : "Account created — you're signed in!");
         navigate({ to: "/" });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        let { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
+
+        // For old accounts that weren't auto-confirmed, try to confirm them
+        // server-side before retrying the login
+        if (error && /confirm|unconfirm/i.test(error.message)) {
+          try {
+            await confirmUnconfirmed({ data: { email: email.trim() } });
+            // Retry login after confirming
+            ({ error } = await supabase.auth.signInWithPassword({
+              email: email.trim(),
+              password,
+            }));
+          } catch (confirmError) {
+            console.error("Failed to confirm email:", confirmError);
+            // Continue with the original error
+          }
+        }
         if (error) throw error;
         persistEmail();
         toast.success(ar ? "تم تسجيل الدخول!" : "Signed in!");
@@ -260,7 +277,7 @@ function AuthPage() {
       <Card className="w-full max-w-md rounded-3xl border-border/70 p-6 shadow-[var(--shadow-lift)] sm:p-8" dir={ar ? "rtl" : "ltr"}>
         <Link
           to="/"
-          aria-label={ar ? "الرجوع للصفحة الرئيسية" : "Back to home"}
+          aria-label={ar ? "الرجوع للصفحة الرئيسي��" : "Back to home"}
           title={ar ? "الرجوع للصفحة الرئيسية" : "Back to home"}
           className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
