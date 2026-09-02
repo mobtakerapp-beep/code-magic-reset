@@ -170,7 +170,7 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       }
     } catch (e) {
       console.error("[resetPasswordWithCode] listUsers failed", e);
-      return { ok: false, code: "failed" };
+      return { ok: false, code: isMissingAdminConfig(e) ? "server_config" : "failed" };
     }
     if (!target) return { ok: false, code: "no_account" };
 
