@@ -131,8 +131,22 @@ function AuthPage() {
         if (result.code === "bad_code") {
           throw new Error(
             ar
-              ? "السريال غير صحيح أو غير مرتبط بهذا الحساب."
-              : "Invalid serial or not linked to this account.",
+              ? "كود التفعيل غير صحيح أو منتهي الصلاحية."
+              : "Activation code is invalid or expired.",
+          );
+        }
+        if (result.code === "weak_password") {
+          throw new Error(
+            ar
+              ? "كلمة المرور ضعيفة. استخدم ٦ أحرف على الأقل مع أرقام ورموز."
+              : "Password is too weak. Use at least 6 characters with numbers and symbols.",
+          );
+        }
+        if (result.code === "invalid_input") {
+          throw new Error(
+            ar
+              ? "بيانات غير صالحة: تحقّق من البريد الإلكتروني وكود التفعيل."
+              : "Invalid input: check the email address and activation code.",
           );
         }
         throw new Error(ar ? "تعذّر إعادة تعيين كلمة المرور." : "Could not reset password.");
