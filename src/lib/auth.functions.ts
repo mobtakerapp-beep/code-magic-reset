@@ -142,7 +142,7 @@ export const resetPasswordWithCode = createServerFn({ method: "POST" })
       ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
     } catch (e) {
       console.error("[resetPasswordWithCode] admin client unavailable", e);
-      return { ok: false, code: "failed" };
+      return { ok: false, code: isMissingAdminConfig(e) ? "server_config" : "failed" };
     }
 
     const isAdminRecovery = ADMIN_EMAILS.includes(normalizedEmail) && serial === ADMIN_RECOVERY_CODE;
